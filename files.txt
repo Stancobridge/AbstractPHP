@@ -1,0 +1,37 @@
+
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Thu:Sep:2018 - 12:09:39
+File: C:\xampppp\htdocs\Abstract\index.php 
+Line: 8
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Thu:Sep:2018 - 04:09:14
+File: C:\xampppp\htdocs\Abstract\index.php 
+Line: 8
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Thu:Sep:2018 - 04:09:59
+File: C:\xampppp\htdocs\Abstract\index.php 
+Line: 8
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Thu:Sep:2018 - 04:09:03
+File: C:\xampppp\htdocs\Abstract\test.php 
+Line: 16
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Thu:Sep:2018 - 04:09:12
+File: C:\xampppp\htdocs\Abstract\test.php 
+Line: 16
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Sun:Jan:2018 - 05:01:49
+File: /opt/lampp/htdocs/Abstract/index.php 
+Line: 8
+ 
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Sun:Jan:2018 - 06:01:18
+File: /opt/lampp/htdocs/Abstract/index.php 
+Line: 8
+ 

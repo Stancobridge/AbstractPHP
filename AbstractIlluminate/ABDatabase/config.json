@@ -1,0 +1,12 @@
+{
+    "db":
+        { 
+            "hst" : "localhost",
+            "prt" : 3306,
+            "dbname" : "pdf",
+            "usn" : "root",
+            "pwd":"",
+            "chst":"utf8",
+            "dvr" : "mysql"
+        }
+}
