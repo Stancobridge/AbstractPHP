@@ -172,7 +172,7 @@
          */
         public function isBool($condition) :string{
             $condition = strtoupper($condition) ;
-             if(($condition != "OR") && ($condition != "AND")) {
+             if(($condition != "OR") && ($condition != "AND") && ($condition != ",")) {
                     throw new \Error('Only "OR" and "AND" is accepted in the third argument');
                     
                 } else{
@@ -221,4 +221,42 @@
 
             return $this;
         }
+
+        /**
+         * @method name orderBy()
+         * @param {array, string} $columnNames $ASC/DeSC -$columnNames requires a NON associative array
+         * @description this method takes an array of column names and a string of either ASC/DSC to order the query 
+         */
+        public function orderBy(array $columnNames, string $order = "ASC"): object {
+            array_reduce($columnNames,function ($prevCol,$currentCol) use (&$orderCol, &$orderQuery, &$order){
+                $orderCol .= $currentCol . ",";
+                $substr = substr($orderCol,0,strlen($orderCol)-1);
+                $orderQuery = " ORDER BY $substr {$order} ";
+                
+            });
+            $this->sqlQuery .= $orderQuery; 
+            return $this;
+        }
+
+        /**
+         * @method updateRecord()
+         * @param {array, string} $columnNames $ASC/DeSC -$columnNames requires a NON associative array
+         * @description this method takes an array of column names and a string of either ASC/DSC to order the query 
+         */
+
+         public function updateRecord(array $set, array $where, string $tablename, $condition = null ) :object{
+            $this->placeholder = $this->getPlaceholders($set);
+            $this->placeholder = $this->getPlaceholders($where);
+            $setCondition = $this->getConditions($set, ',');
+            $whereConditon = $this->getConditions($where, $condition);
+            $this->sqlQuery = "UPDATE {$tablename} SET {$setCondition} WHERE  {$whereConditon}";
+            return $this;
+         }
+
+         public function commit(){
+            $this->conn->exec('use myusers');
+            $stmt = $this->conn->prepare($this->sqlQuery);
+            $stmt->execute($this->placeholder);
+
+            }
      }
