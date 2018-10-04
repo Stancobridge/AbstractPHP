@@ -40,3 +40,8 @@ Time: Sun:Jan:2018 - 05:01:48
 File: /opt/lampp/htdocs/Abstract/index.php 
 Line: 8
  
+Error Message: strpos() expects at least 2 parameters, 0 given
+Time: Wed:Sep:2018 - 09:09:21
+File: C:\xampp\htdocs\Abstract\index.php 
+Line: 8
+ 

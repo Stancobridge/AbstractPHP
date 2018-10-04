@@ -1,0 +1,63 @@
+body{
+    background-color: #f4f4f4;
+    margin: 0px;
+    padding: 0px;
+    font-family: 'Raleway', sans-serif;
+    color: #636b6f;
+}
+a{
+    text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6{
+    margin: 0%;
+    padding: 5px;
+}
+
+.welcome-title{
+    text-align: center;
+}
+
+#main{
+    width: 60%;
+    margin: auto;
+    background-color: #fcfcfc;
+    border-radius: 6px;
+    box-shadow: 0px 0px 3px 4px lightgray;
+    padding: 10px;
+}
+
+.navbar-container{
+    list-style: none;
+    margin: 0px;
+    padding: 0%;
+}
+
+.nav-item{
+    display: inline-block;
+    margin: 5px;
+}
+.title{
+    display: flex;
+    padding-top: 10px;
+    border-bottom: 1px solid lightgray;
+    
+}
+.framework-name{
+    flex-grow: 3 ;
+}
+
+
+.btn{
+    padding: 10px;
+    background-color: rgb(70, 70, 245);
+    color: white !important;
+    border-radius: 6px;
+    box-shadow: 0px 0px 5px 2px none;
+    transition: 0.25s;
+    border: none;
+}
+
+.btn:hover, .btn:focus{
+    box-shadow: 0px 0px 0px 4px rgba(70, 70, 245, 0.507); 
+}

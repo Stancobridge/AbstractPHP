@@ -10,19 +10,17 @@
 
      class Database
      {
-        public $connect = null;
         public $sqlQuery = null;
-        public $colLenght = 0;
-        public $passedCol = 0;
-        public $tablename = null;
         public $values = [];
         public $placeholder = [];
-        private $prevUse = null;
-        public $tablechecker = 0;
-        public $defaultname = null;
         private $conn = null;
         private $columns = null;
         private $condition = null;
+        public $queryoptions = [];
+        public $isSelect = false;
+        public $tables = null;
+
+
         public function __construct(PDO $con = NULL){
             Connection::configureDb(
                 new Dbconfig('AbstractIlluminate/ABDatabase/config.json')
@@ -32,38 +30,54 @@
 
         }
 
+        // public function getTables(array $queryoptions = null) {
+        //     $this->queryoptions  = $queryoptions ?? $this->queryoptions;
+        //     $tablesArray = array_keys($this->)
+        // }
+
     /**
          * @method getPlaceholders()
          * @param {array} $queryoptions - this holds an associative array of the table columns matching to there values
          * @return array
          */
-        private function getPlaceholders(array $queryoptions) :array
+        private function getPlaceholders(array $queryoptions = null) :array
         {
+            $workinArray = $queryoptions ?? $this->queryoptions;
+
+            //make sure placeval did not contain array, if it contains array work it out
+            array_walk($workinArray, function (&$item, &$key) use (&$workinArray){
+                if(is_array($item)){
+                    unset($workinArray[$key]);
+                }
+            });
+            
             //Get the keys for placeholder
             $placekeys = array_map(function ($item){
                 $item = explode("|", $item)[0];
-                return rtrim(":".$item);
-            }, array_keys($queryoptions));
+                return trim(":".$item);
+            }, array_keys($workinArray));
             //Gets the values for the placeholder
-            $placeval = array_values($queryoptions);
-
-            //Checkb if array is empty
+            $placeval = array_map(function (&$item) {
+                return trim($item);
+            },array_values($workinArray));
+            
+            //Check if array is empty
             if(empty($this->placeholder)){ //if empty fill in values into array
                 $this->placeholder = array_combine($placekeys, $placeval);
-                //Return new array
+                //Return new array 
                 return $this->placeholder;
             } else{
                 //if is not empty update values in array
-                array_walk($queryoptions, function($item, $key){
+                array_walk($workinArray, function($item, $key){
                     $key = explode("|", $key)[0];
                     $key = rtrim($key);
-                    $this->placeholder[":".$key] = $item;
+                    $this->placeholder[":".$key] = trim($item);
                 });
 
+                
                 //Return updated array
                 return $this->placeholder;
             }
-            
         }
 
         /**
@@ -71,9 +85,9 @@
          * @param {array} $queryoptions - this holds an associative array of the table columns matching to there values
          * @return array
          */
-        private function getColumns(array $queryoptions) :string
+        private function getColumns() :string
         {
-            $this->columns = array_reduce(array_keys($queryoptions), function ($carry, $item){
+            $this->columns = array_reduce(array_keys($this->queryoptions), function ($carry, $item){
                 return !$carry ? $item : ("$carry, $item");
             });
 
@@ -101,12 +115,19 @@
      * @description this method builds a query from the specified table with the given query options
      * @return bool
      */
-        public function selectInto(array $queryoptions, $tablename = null, $condition = null) :object
+        public function selectInto(array $queryoptions, $tablename = null, $condition = null, string $columns = null) :object
         {
-            $this->placeholder = $this->getPlaceholders($queryoptions);
+            //set $this->queryoption
+            $this->queryoptions = $queryoptions;
+
+            $this->placeholder = $this->getPlaceholders();
             $condition = is_null($condition)? null : $this->isBool($condition);
-            $condition = $this->getConditions($queryoptions, $condition);
-            $this->sqlQuery = "SELECT FROM {$tablename} WHERE {$condition}";
+            
+            $condition = $this->getConditions(null, $condition);
+            
+            $columns = $columns ?? "*";
+            $this->sqlQuery = "SELECT {$columns} FROM {$tablename} WHERE {$condition}";
+            $this->isSelect = true;
             return $this;
         }
        
@@ -122,12 +143,13 @@
          */
         public function insertInto(array $queryoptions, string $tablename) :object
         {
+            $this->queryoptions = $queryoptions;
+            
             //get the query placeholder
-            $this->placeholder = $this->getPlaceholders($queryoptions);
+            $this->placeholder = $this->getPlaceholders();
 
             //get the columns to compare query with
-            $this->columns = $this->getColumns($queryoptions);
-
+            $this->columns = $this->getColumns();
             //Reduce the array key to be used as INSERT values
             $this->values = $this->getValues($this->placeholder);
             
@@ -140,25 +162,66 @@
 
         /**
          * @method getCondition()
-         * @param {array} $queryoptions - holds array
-         * @description - checks if $condition string is "AND" or "OR"   
+         * @description - prepare the query condition with the appropriate columns, 
+         * placeholders and conditions 
          * @return string
          */
 
-        private function getConditions (array $queryoptions, string $condition = null) :string
+        private function getConditions (array $queryoptions = null, string $condition = null) :string
         {
+            $this->queryoptions  = $queryoptions ?? $this->queryoptions;
             //get keys
-            $keys = array_keys($queryoptions);
+            $workinArray = $this->queryoptions;
+            $keys = array_keys($workinArray);
+            $preparedConditions = null;
+            $removed = false;
+            $build = array_reduce($keys, function ($carry, $item) use ($condition, &$preparedConditions, &$workinArray, &$keys, &$removed){    
+                
+                $currentValue = $workinArray[$item]; //get the current value of the queryoptions
 
-            $build = array_reduce($keys, function ($carry, $item) use ($condition){    
-                //get the condition to use for this column
-                $cond = explode("|", $item);
-                //get column name 
-                $colname = $cond[0]?? "=";
-                $placeholder = $cond[1] ?? "=";
-                //build query
-                $carry .= !$carry ?  $colname . " {$placeholder}  :$colname " : $this->isBool($condition) ." ".$colname . " {$placeholder}  :$colname " ;
-                return $carry;
+                if(is_array($currentValue)){ // if current value is an array create a valid condition for it
+                    //set column placeholder counter for any value that is an array to properly set the query
+                    $counter = 1;
+                    //get values from the first array item which also an array  
+                    $innerValues = $currentValue[0];
+                    
+                    $queryConditions = isset($currentValue[1]) ? explode(',', $currentValue[1]): null;
+
+                    $realInner = isset($queryConditions[1]) ? $queryConditions[0] : 'OR';
+                    
+                    // get the condition to be used for this values
+                    $innerCondition = is_null($queryConditions)? 'OR' : $queryConditions[1]??  $this->isBool($queryConditions[0]) ;
+
+
+                    $preparedConditions = array_reduce($innerValues, function ($newCarry, $newItem) use ($item, $innerCondition, &$counter, $realInner, &$workinArray ){
+                        
+                        $isExplode = explode("|", $newItem);
+                        $innerCond = count($isExplode) == 2 ? $isExplode[0] : '=';
+                        $innerColval = count($isExplode) == 2? $isExplode[1] : $isExplode[0];
+                        
+                        $innerPlaceholder = ":".$item.$counter;
+
+                        $newCarry .= !$newCarry ?  " {$this->isBool($realInner)} {$item} {$innerCond}  $innerPlaceholder " : $this->isBool($innerCondition). " ".$item." {$innerCond} $innerPlaceholder ";
+
+                        $this->placeholder[$innerPlaceholder] = trim($innerColval);
+                        $counter++;
+                       return $newCarry;
+                    });
+                    $carry .= !$carry ? " " . ltrim(trim($preparedConditions), $this->isBool($realInner) ) . " "  : $preparedConditions;
+                    
+                    return $carry;
+                } elseif (!is_array($item)){
+                    //get the condition to use for this column
+                    $cond = explode("|", $item);
+                    //get column name 
+                    $colname = $cond[0];
+                    $placeholder = $cond[1] ?? "=";
+                    //build query
+                    $carry .= !$carry ?  $colname . " {$placeholder}  :$colname " : $this->isBool($condition) ." ".$colname . " {$placeholder}  :$colname " ;
+                    
+                    return $carry;
+                }
+                    
                 
             });
             return rtrim($build, $condition);
@@ -171,9 +234,9 @@
          * @return string
          */
         public function isBool($condition) :string{
-            $condition = strtoupper($condition) ;
+            $condition = trim(strtoupper($condition)) ;
              if(($condition != "OR") && ($condition != "AND") && ($condition != ",")) {
-                    throw new \Error('Only "OR" and "AND" is accepted in the third argument');
+                    throw new \Error('Only "OR" or "AND" are accepted for sql condition');
                     
                 } else{
                     $condition =  $condition ;
@@ -190,13 +253,15 @@
          */
         public function deleteRecord(array $queryoptions, string $tablename, string $condition = null) :object
         {
+            //set $this->queryoption
+            $this->queryoptions = $queryoptions;
             //get the length of the columns
-            $colLenght = count($queryoptions);
+            $colLenght = count($this->queryoptions);
 
             //get the query placeholder
-            $this->placeholder = $this->getPlaceholders($queryoptions);
+            $this->placeholder = $this->getPlaceholders();
             //return the prepared columns, their conditions and placeholders
-            $condition = $this->getConditions($queryoptions, $condition);
+            $condition = $this->getConditions(null, $condition);
 
             $this->sqlQuery = "DELETE FROM {$tablename} WHERE $condition ";
                 
@@ -212,11 +277,11 @@
          * @description - this method creates a condition query for the provided $tablename  
          * @return object
          */
-        public function condition(array $queryoptions, string $condition) :object
+        public function condition(string $condition, array $conditonOptions = null) :object
         {
-            $this->placeholder = $this->getPlaceholders($queryoptions);
+            $this->placeholder = $this->getPlaceholders($conditonOptions);
             $condition = $this->isBool($condition);
-            $condition = $condition ." ". $this->getConditions($queryoptions, $condition);
+            $condition = $condition ." ". $this->getConditions($conditonOptions, $condition);
             $this->sqlQuery .= " {$condition}";
 
             return $this;
@@ -254,9 +319,13 @@
          }
 
          public function commit(){
-            $this->conn->exec('use myusers');
+            $this->conn->exec('use abstract');
             $stmt = $this->conn->prepare($this->sqlQuery);
             $stmt->execute($this->placeholder);
+
+            if($this->isSelect){
+                return $stmt->fetchAll();
+            }
 
             }
      }

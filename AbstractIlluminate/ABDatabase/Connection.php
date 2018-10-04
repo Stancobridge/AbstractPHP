@@ -75,7 +75,8 @@
                 try{
                     self::$conn = new \PDO(self::$dsn, self::$config->usn, self::$config->pwd,
                 self::$config->setOptions([
-                    'error' => 'exception'
+                    'error' => 'exception',
+                    'fetch' => 'assoc'
                 ]));
                 self::$isConnected = true;
                 return true;
